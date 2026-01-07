@@ -57,8 +57,9 @@ function createServer() {
         const dbPath = path.resolve('db', 'expense.json');
 
         // NOTE:
-        // We intentionally overwrite expense.json on each request
-        // because task tests expect the file to contain a single expense object.
+        // expense.json overwrites on each request
+        // because task tests expect the file to contain
+        // a single expense object.
         // In a real application we would store an array of expenses.
         fs.writeFileSync(dbPath, JSON.stringify(expense, null, 2), 'utf-8');
 
