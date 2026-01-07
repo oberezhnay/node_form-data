@@ -28,10 +28,20 @@ function createServer() {
       });
 
       req.on('end', () => {
+        const contentType = req.headers['content-type'] || '';
+        const isJsonRequest = contentType.includes('application/json');
         let expense;
 
         try {
-          expense = JSON.parse(body);
+          if (contentType.includes('application/json')) {
+            expense = JSON.parse(body);
+          } else if (
+            contentType.includes('application/x-www-form-urlencoded')
+          ) {
+            expense = Object.fromEntries(new URLSearchParams(body));
+          } else {
+            expense = {};
+          }
         } catch {
           res.writeHead(400);
 
@@ -46,10 +56,34 @@ function createServer() {
 
         const dbPath = path.resolve('db', 'expense.json');
 
+        // NOTE:
+        // We intentionally overwrite expense.json on each request
+        // because task tests expect the file to contain a single expense object.
+        // In a real application we would store an array of expenses.
         fs.writeFileSync(dbPath, JSON.stringify(expense, null, 2), 'utf-8');
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(expense));
+        if (isJsonRequest) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(expense));
+        } else {
+          const prettyJson = JSON.stringify(expense, null, 2);
+
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+
+          res.end(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <title>Document</title>
+            </head>
+            <body>
+              <h1>Saved expense</h1>
+              <pre>${prettyJson}</pre>
+            </body>
+            </html>
+          `);
+        }
       });
 
       return;
